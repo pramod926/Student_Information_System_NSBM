@@ -1,13 +1,24 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
+
 package sis;
 
-/**
- *
- * @author USER
- */
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import static sis.DBConnection.getConnection;
+
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+
+import java.sql.Timestamp;
+import java.sql.Date;
+
+import java.awt.Color;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import javax.swing.JTextField;
+
 public class Student_Dashboard extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Student_Dashboard.class.getName());
@@ -17,7 +28,75 @@ public class Student_Dashboard extends javax.swing.JFrame {
      */
     public Student_Dashboard() {
         initComponents();
+        loadStudents();
+        addPlaceholder(jTextField1, "Enter Student ID...");
     }
+    private void loadStudents() {
+        // Define column names
+        String[] columns = {
+                "ID", "Full Name", "Date of Birth", "Address",
+                "Gender", "Gmail", "Phone", "Registered", "Course"
+        };
+
+        // Create a new table model and set it to jTable1
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        jTable1.setModel(model);
+
+        // SQL query: join students with courses to get course name
+        String sql = "SELECT s.student_id, s.full_name, s.date_of_birth, s.address, "
+                + "s.gender, s.gmail, s.mobile_number, s.date_registered, c.course_name "
+                + "FROM students s "
+                + "JOIN courses c ON s.course_id = c.course_id";
+
+        try (Connection con = getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            // Loop through the result set and add rows to the table model
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                        rs.getInt("student_id"),
+                        rs.getString("full_name"),
+                        rs.getDate("date_of_birth"),
+                        rs.getString("address"),
+                        rs.getString("gender"),
+                        rs.getString("gmail"),
+                        rs.getString("mobile_number"),
+                        rs.getTimestamp("date_registered"),
+                        rs.getString("course_name")
+                });
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading students: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void addPlaceholder(JTextField textField, String placeholder) {
+
+    textField.setText(placeholder);
+    textField.setForeground(Color.GRAY);
+
+    textField.addFocusListener(new FocusListener() {
+        @Override
+        public void focusGained(FocusEvent e) {
+            if (textField.getText().equals(placeholder)) {
+                textField.setText("");
+                textField.setForeground(Color.BLACK);
+            }
+        }
+
+        @Override
+        public void focusLost(FocusEvent e) {
+            if (textField.getText().isEmpty()) {
+                textField.setText(placeholder);
+                textField.setForeground(Color.GRAY);
+            }
+        }
+    });
+}
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -167,11 +246,11 @@ public class Student_Dashboard extends javax.swing.JFrame {
             .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jButton7, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jButton7, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 450, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(7, 7, 7))
@@ -181,11 +260,14 @@ public class Student_Dashboard extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
+        Add_Student ads = new Add_Student();
+        ads.setVisible(true);
+        this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        // TODO add your handling code here:
+        Dashboard dashboard = new Dashboard();
+        dashboard.setVisible(true);
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
@@ -194,21 +276,91 @@ public class Student_Dashboard extends javax.swing.JFrame {
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
         // TODO add your handling code here:
+        String studentId = jTextField1.getText().trim();
+
+        if (studentId.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a Student ID!");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to delete Student ID: " + studentId + "?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        String sql = "DELETE FROM students WHERE student_id = ?";
+
+        try (Connection con = DBConnection.getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
+
+            pst.setString(1, studentId);
+
+            int rows = pst.executeUpdate();
+
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "Student Deleted Successfully!");
+                loadStudents(); // refresh table
+            } else {
+                JOptionPane.showMessageDialog(this, "Student ID Not Found!");
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error deleting student!");
+        }
     }//GEN-LAST:event_jButton6ActionPerformed
 
     private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
-        // TODO add your handling code here:
+        
+        String studentId = jTextField1.getText().trim();
+
+        if (studentId.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a Student ID!");
+            return;
+        }
+
+        String sql = "SELECT student_id, full_name, date_of_birth, address, gender, gmail, mobile_number, course_id "
+                + "FROM students WHERE student_id = ?";
+
+        try (Connection con = DBConnection.getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
+
+            pst.setString(1, studentId);
+            ResultSet rs = pst.executeQuery();
+
+            // Clear previous data
+            DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+            model.setRowCount(0);
+
+            if (rs.next()) {
+                // Add row to table
+                model.addRow(new Object[]{
+                    rs.getString("student_id"),
+                    rs.getString("full_name"),
+                    rs.getString("date_of_birth"),
+                    rs.getString("address"),
+                    rs.getString("gender"),
+                    rs.getString("gmail"),
+                    rs.getString("mobile_number"),
+                    rs.getString("course_id")
+                });
+
+            } else {
+                JOptionPane.showMessageDialog(this, "No Student Found!");
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+            e.printStackTrace();
+        }
     }//GEN-LAST:event_jButton7ActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
+    
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
+        
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
